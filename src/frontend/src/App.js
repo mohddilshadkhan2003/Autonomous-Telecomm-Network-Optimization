@@ -70,7 +70,7 @@ function App() {
   const statusCards = useMemo(() => [
     { title: 'System Health', value: connected ? 'Online' : 'Offline', detail: connected ? 'Connected to backend' : 'Fallback mode', statusColor: connected ? '#22c55e' : '#f97316' },
     { title: 'Network Uptime', value: summaryMetrics.uptime, detail: 'Service-level stability', statusColor: '#38bdf8' },
-    { title: 'Active Alerts', value: incidents.length, detail: 'AutoNetOps incident queue', statusColor: '#fb7185' },
+    { title: 'Active Alerts', value: incidents.length, detail: 'CIIMT incident queue', statusColor: '#fb7185' },
     { title: 'Prediction Risk', value: summaryMetrics.predictionRisk, detail: 'Pre-failure detection', statusColor: '#f59e0b' },
   ], [connected, incidents.length]);
 
@@ -78,7 +78,7 @@ function App() {
     setChatHistory((history) => [
       ...history,
       { role: 'user', text: message },
-      { role: 'assistant', text: `AutoNetOps detected key risk patterns and recommends reviewing ${incidents[0]?.deviceId || 'target node'}.` },
+      { role: 'assistant', text: `CIIMT detected key risk patterns and recommends reviewing ${incidents[0]?.deviceId || 'target node'}.` },
     ]);
   };
 
@@ -86,7 +86,7 @@ function App() {
     const result = await triggerAgents(incidents[0]?.incidentId || 'unknown');
     setChatHistory((history) => [
       ...history,
-      { role: 'system', text: 'AutoNetOps remediation engine triggered.' },
+      { role: 'system', text: 'CIIMT remediation engine triggered.' },
       { role: 'assistant', text: `Remediation request status: ${result.status}.` },
     ]);
   };
@@ -97,7 +97,7 @@ function App() {
       <Container maxWidth="xl" sx={{ py: 4 }}>
         <Box sx={{ mb: 3 }}>
           <Typography variant="h3" gutterBottom>
-            AutoNetOps Autonomous Telecom NOC
+            CIIMT Network Intelligence
           </Typography>
           <Typography variant="subtitle1" color="text.secondary">
             Real-time fault prediction, autonomous root cause analysis, and self-healing orchestration.
@@ -126,7 +126,17 @@ function App() {
               Trigger Auto-Remediation
             </Button>
           </Box>
-          <Line data={chartData} options={{ responsive: true, plugins: { legend: { labels: { color: '#e2e8f0' } } }, scales: { x: { ticks: { color: '#cbd5e1' }, grid: { color: '#1e293b' } }, y: { ticks: { color: '#cbd5e1' }, grid: { color: '#1e293b' } } } }} />
+          <Line
+            data={chartData}
+            options={{
+              responsive: true,
+              plugins: { legend: { labels: { color: '#e2e8f0' } } },
+              scales: {
+                x: { ticks: { color: '#cbd5e1' }, grid: { color: '#1e293b' } },
+                y: { ticks: { color: '#cbd5e1' }, grid: { color: '#1e293b' } },
+              },
+            }}
+          />
         </Paper>
 
         <Grid container spacing={2} sx={{ mt: 3 }}>
