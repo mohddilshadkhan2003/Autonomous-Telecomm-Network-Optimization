@@ -7,12 +7,13 @@ import StatusCard from './components/StatusCard';
 import IncidentTable from './components/IncidentTable';
 import ChatAssistant from './components/ChatAssistant';
 import { summaryMetrics, incidentSamples, workflowMessages } from './mockData';
-import { fetchHealth, fetchIncidents, triggerAgents } from './api';
+import { fetchHealth, fetchIncidents, fetchNetworkMetrics, fetchOverview, triggerAgents } from './api';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend);
 
 function App() {
   const [health, setHealth] = useState({ status: 'unknown' });
+  const [overview, setOverview] = useState({ summaryMetrics });
   const [incidents, setIncidents] = useState(incidentSamples);
   const [connected, setConnected] = useState(false);
   const [chatHistory, setChatHistory] = useState(workflowMessages);
@@ -23,13 +24,15 @@ function App() {
         label: 'Packet Loss (%)',
         data: [0.3, 0.5, 0.9, 1.2, 0.8, 1.6, 2.4],
         borderColor: '#22c55e',
-        tension: 0.4,
+        backgroundColor: 'rgba(34,197,94,0.12)',
+        tension: 0.35,
       },
       {
         label: 'Latency (ms)',
         data: [18, 21, 24, 30, 28, 34, 40],
         borderColor: '#38bdf8',
-        tension: 0.4,
+        backgroundColor: 'rgba(56,189,248,0.12)',
+        tension: 0.35,
       },
     ],
   });
@@ -38,9 +41,14 @@ function App() {
     async function loadBackend() {
       try {
         const healthData = await fetchHealth();
+        const overviewData = await fetchOverview();
+        const metricsData = await fetchNetworkMetrics();
         const incidentsData = await fetchIncidents();
+
         setHealth(healthData);
+        setOverview(overviewData);
         setIncidents(incidentsData.length ? incidentsData : incidentSamples);
+        setChartData(metricsData);
         setConnected(true);
       } catch (error) {
         setConnected(false);
@@ -48,13 +56,13 @@ function App() {
     }
 
     loadBackend();
+
     const interval = setInterval(() => {
       setChartData((prev) => {
         const nextLabels = prev.labels.slice(1).concat(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
         const nextPacket = [...prev.datasets[0].data.slice(1), Math.round((Math.random() * 1.4 + 0.6) * 10) / 10];
         const nextLatency = [...prev.datasets[1].data.slice(1), Math.round((Math.random() * 10 + 20) * 10) / 10];
         return {
-          ...prev,
           labels: nextLabels,
           datasets: [
             { ...prev.datasets[0], data: nextPacket },
@@ -67,12 +75,14 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
+  const summary = overview.summaryMetrics || summaryMetrics;
+
   const statusCards = useMemo(() => [
-    { title: 'System Health', value: connected ? 'Online' : 'Offline', detail: connected ? 'Connected to backend' : 'Fallback mode', statusColor: connected ? '#22c55e' : '#f97316' },
-    { title: 'Network Uptime', value: summaryMetrics.uptime, detail: 'Service-level stability', statusColor: '#38bdf8' },
+    { title: 'System Health', value: connected ? health.status || 'Online' : 'Offline', detail: connected ? 'Connected to backend' : 'Fallback mode', statusColor: connected ? '#22c55e' : '#f97316' },
+    { title: 'Network Uptime', value: summary.uptime, detail: 'Service-level stability', statusColor: '#38bdf8' },
     { title: 'Active Alerts', value: incidents.length, detail: 'CIIMT incident queue', statusColor: '#fb7185' },
-    { title: 'Prediction Risk', value: summaryMetrics.predictionRisk, detail: 'Pre-failure detection', statusColor: '#f59e0b' },
-  ], [connected, incidents.length]);
+    { title: 'Prediction Risk', value: summary.predictionRisk, detail: 'Pre-failure detection', statusColor: '#f59e0b' },
+  ], [connected, health.status, incidents.length, summary.predictionRisk, summary.uptime]);
 
   const handleSendMessage = (message) => {
     setChatHistory((history) => [
@@ -112,7 +122,7 @@ function App() {
           ))}
         </Grid>
 
-        <Paper sx={{ mt: 3, p: 3, background: '#0f172a', border: '1px solid #334155' }}>
+        <Paper className="dashboard-panel" sx={{ mt: 3, p: 3 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2, mb: 2 }}>
             <Box>
               <Typography variant="h6" sx={{ mb: 1 }}>
@@ -122,7 +132,7 @@ function App() {
                 Live forecast demonstrates packet loss and latency behavior across the network core.
               </Typography>
             </Box>
-            <Button variant="contained" onClick={handleTriggerRemediation} sx={{ bgcolor: '#2563eb' }}>
+            <Button variant="contained" onClick={handleTriggerRemediation} className="primary-button">
               Trigger Auto-Remediation
             </Button>
           </Box>
@@ -130,6 +140,7 @@ function App() {
             data={chartData}
             options={{
               responsive: true,
+              maintainAspectRatio: false,
               plugins: { legend: { labels: { color: '#e2e8f0' } } },
               scales: {
                 x: { ticks: { color: '#cbd5e1' }, grid: { color: '#1e293b' } },
